@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="card">
+    <h2>Connect & Verify MetaMask Wallet</h2>
+
+    <div id="wallet-info" style="background: #f0f0f0; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+        {% if user.wallet_verified %}
+            <p style="color: green;"><strong>✓ Your wallet is connected:</strong></p>
+            <p>{{ user.wallet_address }}</p>
+            <form method="POST" style="display: inline;">
+                {% csrf_token %}
+                <button type="button" class="btn" onclick="disconnectWallet()">Disconnect Wallet</button>
+            </form>
+        {% else %}
+            <button id="connectBtn" class="btn" onclick="connectMetaMask()">1. Connect MetaMask</button>
+            <div id="accountSelection" style="display: none; margin-top: 15px;">
+                <label>Select Account:</label><br>
+                <select id="accountSelect" multiple style="width: 100%; padding: 8px; height: 100px;">
+                </select><br><br>
+            </div>
+            <p id="selectedAccount" style="margin-top: 10px; color: green;"></p>
+            <button id="verifyBtn" class="btn" style="display: none;" onclick="verifyWallet()">2. Verify Wallet</button>
+        {% endif %}
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+<script>
+
+let web3;
+let selectedAccount = null;
+
+async function connectMetaMask() {
+    if (typeof window.ethereum !== 'undefined') {
+        try {
+            const accounts = await window.ethereum.request({
+                method: 'eth_requestAccounts'
+            });
+
+            // Show account selection
+            const selectElement = document.getElementById('accountSelect');
+            selectElement.innerHTML = '';
+            accounts.forEach((acc, idx) => {
+                const option = document.createElement('option');
+                option.value = acc;
+                option.textContent = `${acc}`;
+                option.selected = idx === 0;
+                selectElement.appendChild(option);
+            });
+
+            document.getElementById('accountSelection').style.display = 'block';
+            document.getElementById('connectBtn').style.display = 'none';
+
+            selectElement.addEventListener('change', function() {
+                selectedAccount = this.value;
+                document.getElementById('selectedAccount').textContent = '✓ Selected: ' + selectedAccount;
+            });
+
+            // Set initial selection
+            selectedAccount = accounts[0];
+            document.getElementById('selectedAccount').textContent = '✓ Selected: ' + selectedAccount;
+            document.getElementById('verifyBtn').style.display = 'inline-block';
+
+            web3 = new Web3(window.ethereum);
+
+            alert('MetaMask connected! Select your account and click "Verify Wallet"');
+        } catch (error) {
+            alert('Connection failed: ' + error.message);
+        }
+    } else {
+        alert('MetaMask not installed. Please install the MetaMask extension.');
+    }
+}
+
+async function verifyWallet() {
+    if (!selectedAccount) {
+        alert('Please select an account first');
+        return;
+    }
+
+    const message = `Verify my MetaMask wallet for {{ user.username }}: ${selectedAccount}`;
+
+    try {
+        const signature = await web3.eth.personal.sign(message, selectedAccount, '');
+
+        // Send to backend
+        const response = await fetch('{% url "update_wallet" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                wallet_address: selectedAccount,
+                signature: signature,
+                message: message
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            alert('✓ Wallet verified successfully!');
+            window.location.reload();
+        } else {
+            alert('Verification failed: ' + data.message);
+        }
+    } catch (error) {
+        alert('Signature failed: ' + error.message);
+    }
+}
+
+function disconnectWallet() {
+    if (confirm('Are you sure you want to disconnect your wallet?')) {
+        // You could add backend logic here to reset wallet_address
+        alert('Wallet disconnected');
+        window.location.reload();
+    }
+}
+
+</script>
+
+{% endblock %}

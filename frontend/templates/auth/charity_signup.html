@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <i class="bi bi-building-plus text-success" style="font-size: 3rem;"></i>
+                        <h2 class="mt-3 fw-bold">Register Charity Organization</h2>
+                        <p class="text-muted">Join our transparent donation platform</p>
+                    </div>
+
+                    <form method="POST">
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger" role="alert">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                                {{ form.non_field_errors.0 }}
+                            </div>
+                        {% endif %}
+
+                        <div class="mb-3">
+                            <label for="id_name" class="form-label fw-semibold">
+                                <i class="bi bi-building-fill"></i> Organization Name
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <div class="text-danger small mt-1">
+                                    <i class="bi bi-exclamation-circle-fill"></i> {{ form.name.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_wallet_address" class="form-label fw-semibold">
+                                <i class="bi bi-wallet-fill"></i> MetaMask Wallet Address
+                            </label>
+                            <div class="mb-2">
+                                <button type="button" id="connectWalletButton" class="btn btn-outline-primary me-2">
+                                    <i class="bi bi-wallet2"></i> Connect MetaMask
+                                </button>
+                                <button type="button" id="reconnectWalletButton" class="btn btn-outline-warning">
+                                    <i class="bi bi-arrow-repeat"></i> Switch Account
+                                </button>
+                            </div>
+                            {{ form.wallet_address }}
+                            <div id="walletHint" class="form-text">
+                                <i class="bi bi-info-circle-fill text-info"></i>
+                                If MetaMask opens Account 1 automatically, switch accounts inside MetaMask and then click "Switch Account".
+                            </div>
+                            {% if form.wallet_address.errors %}
+                                <div class="text-danger small mt-1">
+                                    <i class="bi bi-exclamation-circle-fill"></i> {{ form.wallet_address.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <input type="hidden" name="signature" id="signature">
+                        <input type="hidden" name="message" id="message">
+
+                        <div class="mb-3">
+                            <label for="id_description" class="form-label fw-semibold">
+                                <i class="bi bi-card-text"></i> Organization Description
+                            </label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="text-danger small mt-1">
+                                    <i class="bi bi-exclamation-circle-fill"></i> {{ form.description.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_password" class="form-label fw-semibold">
+                                <i class="bi bi-lock-fill"></i> Password
+                            </label>
+                            {{ form.password }}
+                            {% if form.password.errors %}
+                                <div class="text-danger small mt-1">
+                                    <i class="bi bi-exclamation-circle-fill"></i> {{ form.password.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="id_password_confirm" class="form-label fw-semibold">
+                                <i class="bi bi-lock-fill"></i> Confirm Password
+                            </label>
+                            {{ form.password_confirm }}
+                            {% if form.password_confirm.errors %}
+                                <div class="text-danger small mt-1">
+                                    <i class="bi bi-exclamation-circle-fill"></i> {{ form.password_confirm.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <button class="btn btn-success btn-lg w-100 mb-3" type="submit">
+                            <i class="bi bi-building-plus"></i> Register Organization
+                        </button>
+                    </form>
+
+                    <hr class="my-4">
+
+                    <div class="text-center">
+                        <p class="mb-2">Already registered?</p>
+                        <a href="{% url 'charity_login' %}" class="btn btn-outline-success">
+                            <i class="bi bi-box-arrow-in-right"></i> Login Instead
+                        </a>
+                    </div>
+
+                    <div class="text-center mt-3">
+                        <a href="{% url 'index' %}" class="text-decoration-none">
+                            <i class="bi bi-house-fill"></i> Back to Home
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const connectWalletButton = document.getElementById('connectWalletButton');
+    const walletInput = document.querySelector('[name="wallet_address"]');
+    const walletHint = document.getElementById('walletHint');
+    const signatureInput = document.getElementById('signature');
+    const messageInput = document.getElementById('message');
+    const signupForm = document.querySelector('form');
+
+    async function connectMetaMask() {
+        if (!window.ethereum) {
+            alert('MetaMask is not installed. Please install it to register your charity.');
+            return null;
+        }
+
+        try {
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            return handleAccountsChanged(accounts);
+        } catch (error) {
+            alert('MetaMask connection failed: ' + error.message);
+            return null;
+        }
+    }
+
+    function handleAccountsChanged(accounts) {
+        if (!accounts || accounts.length === 0) {
+            walletHint.innerHTML = '<i class="bi bi-info-circle-fill text-warning"></i> No MetaMask account selected. Please open MetaMask and choose an account.';
+            walletInput.value = '';
+            return null;
+        }
+
+        const account = accounts[0];
+        walletInput.value = account;
+        walletInput.readOnly = true;
+        walletHint.innerHTML = `<i class="bi bi-check-circle-fill text-success"></i> Connected wallet: ${account}`;
+        return account;
+    }
+
+    async function signSignupMessage(account) {
+        const orgName = document.querySelector('[name="name"]').value.trim() || 'charity';
+        const message = `Register charity ${orgName} with MetaMask address ${account}`;
+
+        try {
+            const signature = await window.ethereum.request({
+                method: 'personal_sign',
+                params: [message, account]
+            });
+            signatureInput.value = signature;
+            messageInput.value = message;
+            return true;
+        } catch (error) {
+            alert('Wallet signature declined or failed: ' + error.message);
+            return false;
+        }
+    }
+
+    const reconnectWalletButton = document.getElementById('reconnectWalletButton');
+
+    connectWalletButton.addEventListener('click', async () => {
+        await connectMetaMask();
+    });
+
+    reconnectWalletButton.addEventListener('click', async () => {
+        if (!window.ethereum) {
+            alert('MetaMask is not installed.');
+            return;
+        }
+
+        try {
+            await window.ethereum.request({ method: 'eth_requestAccounts' });
+        } catch (error) {
+            console.warn('Reconnect request failed:', error.message || error);
+        }
+
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        await handleAccountsChanged(accounts);
+    });
+
+    if (window.ethereum) {
+        window.ethereum.on('accountsChanged', handleAccountsChanged);
+    }
+
+    signupForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+
+        const account = walletInput.value ? walletInput.value.trim() : await connectMetaMask();
+        if (!account) {
+            return;
+        }
+
+        const signed = await signSignupMessage(account);
+        if (!signed) {
+            return;
+        }
+
+        signupForm.submit();
+    });
+</script>
+
+{% endblock %}

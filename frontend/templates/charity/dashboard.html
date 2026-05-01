@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="text-center mb-4">
+            <i class="bi bi-building text-primary"></i>
+            Charity Dashboard
+        </h1>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row g-4 mb-5">
+    <div class="col-md-3">
+        <div class="stats-card text-center">
+            <h3 class="display-5 fw-bold">{{ total_received|floatformat:2 }}</h3>
+            <p class="mb-0">Total Received (ETH)</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card text-center">
+            <h3 class="display-5 fw-bold">{{ donations|length }}</h3>
+            <p class="mb-0">Total Donations</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card text-center">
+            <h3 class="display-5 fw-bold">{{ fund_requests|length }}</h3>
+            <p class="mb-0">Fund Requests</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card text-center">
+            <h3 class="display-5 fw-bold">
+                {% if charity.verified %}✓{% else %}⏳{% endif %}
+            </h3>
+            <p class="mb-0">Verification</p>
+        </div>
+    </div>
+</div>
+
+<!-- Organization Card -->
+<div class="card p-4 mb-5">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h4 class="fw-bold mb-3">
+                <i class="bi bi-building-fill text-primary"></i>
+                {{ charity.name }}
+            </h4>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <strong>Wallet Address:</strong><br>
+                    <code class="text-break">{{ charity.wallet_address|truncatechars:25 }}</code>
+                </div>
+                <div class="col-md-6">
+                    <strong>Verification Status:</strong><br>
+                    {% if charity.verified %}
+                        <span class="badge bg-success fs-6">
+                            <i class="bi bi-check-circle-fill"></i> Verified
+                        </span>
+                    {% else %}
+                        <span class="badge bg-warning fs-6">
+                            <i class="bi bi-clock-fill"></i> Pending Verification
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'request_fund_unlock' %}" class="btn btn-primary me-2">
+                <i class="bi bi-unlock-fill"></i> Request Funds
+            </a>
+            <a href="{% url 'charity_logout' %}" class="btn btn-danger">
+                <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Donations Received -->
+<div class="card p-4 mb-5">
+    <h3 class="fw-bold mb-4">
+        <i class="bi bi-heart-fill text-success"></i>
+        Donations Received
+    </h3>
+    
+    {% if donations %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th><i class="bi bi-person-fill"></i> Donor</th>
+                        <th><i class="bi bi-coin"></i> Amount</th>
+                        <th><i class="bi bi-lock-fill"></i> Locked</th>
+                        <th><i class="bi bi-unlock-fill"></i> Unlocked</th>
+                        <th><i class="bi bi-chat-quote"></i> Reason</th>
+                        <th><i class="bi bi-shield-check"></i> Verified</th>
+                        <th><i class="bi bi-calendar"></i> Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for donation in donations %}
+                    <tr>
+                        <td class="fw-semibold">{{ donation.donor.username }}</td>
+                        <td class="fw-bold text-success">{{ donation.amount|floatformat:4 }} ETH</td>
+                        <td>
+                            <span class="badge bg-warning">{{ donation.locked_balance|floatformat:4 }} ETH</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-success">{{ donation.unlocked_balance|floatformat:4 }} ETH</span>
+                        </td>
+                        <td>
+                            {% if donation.reason %}
+                                <small class="text-muted">{{ donation.reason|truncatechars:30 }}</small>
+                            {% else %}
+                                <small class="text-muted">-</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if donation.verified %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle-fill"></i> Yes
+                                </span>
+                            {% else %}
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-x-circle-fill"></i> No
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>{{ donation.created_at|date:"M d, Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-heart text-muted" style="font-size: 3rem;"></i>
+            <h5 class="text-muted mt-3">No Donations Yet</h5>
+            <p class="text-muted">Donations from generous donors will appear here.</p>
+            <a href="{% url 'request_fund_unlock' %}" class="btn btn-primary">
+                <i class="bi bi-unlock-fill"></i> Request Funds
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Fund Unlock Requests -->
+<div class="card p-4">
+    <h3 class="fw-bold mb-4">
+        <i class="bi bi-send-fill text-info"></i>
+        Fund Unlock Requests
+    </h3>
+    
+    {% if fund_requests %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th><i class="bi bi-person-fill"></i> Donor</th>
+                        <th><i class="bi bi-coin"></i> Amount Requested</th>
+                        <th><i class="bi bi-chat-quote"></i> Reason</th>
+                        <th><i class="bi bi-info-circle"></i> Status</th>
+                        <th><i class="bi bi-calendar"></i> Requested</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in fund_requests %}
+                    <tr>
+                        <td class="fw-semibold">{{ req.donor.username }}</td>
+                        <td class="fw-bold text-primary">{{ req.amount|floatformat:4 }} ETH</td>
+                        <td>
+                            <small class="text-muted">{{ req.reason|truncatechars:40 }}</small>
+                        </td>
+                        <td>
+                            {% if req.status == 'approved' %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle-fill"></i> Approved
+                                </span>
+                            {% elif req.status == 'rejected' %}
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-x-circle-fill"></i> Rejected
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning">
+                                    <i class="bi bi-clock-fill"></i> Pending
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>{{ req.created_at|date:"M d, Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-send text-muted" style="font-size: 3rem;"></i>
+            <h5 class="text-muted mt-3">No Fund Requests</h5>
+            <p class="text-muted">Create fund unlock requests to access donated funds for your charitable work.</p>
+            <a href="{% url 'request_fund_unlock' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Create Request
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}

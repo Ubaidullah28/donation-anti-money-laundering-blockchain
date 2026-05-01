@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="card">
+    <h2>Make a Donation</h2>
+
+    {% if user.wallet_verified %}
+        <div style="background: #e8f5e9; padding: 10px; border-radius: 5px; margin-bottom: 20px;">
+            <p><strong>Your Account:</strong> {{ user.username }}</p>
+            <p><strong>Connected Wallet:</strong> {{ user.wallet_address|truncatechars:25 }}</p>
+        </div>
+    {% else %}
+        <div style="background: #fff3e0; padding: 10px; border-radius: 5px; margin-bottom: 20px; color: #d84315;">
+            <p><strong>⚠ Warning:</strong> Your wallet is not verified. <a href="{% url 'donor_wallet' %}">Verify now</a></p>
+        </div>
+    {% endif %}
+
+    <form method="POST" id="donationForm">
+        {% csrf_token %}
+
+        <label>Select Charity/Organization:</label><br>
+        <select name="charity" required style="width: 100%; padding: 8px; margin: 5px 0;">
+            <option value="">Choose a charity...</option>
+            {% for charity in charities %}
+            <option value="{{ charity.id }}">{{ charity.name }}</option>
+            {% endfor %}
+        </select><br><br>
+
+        <label>Amount (ETH):</label><br>
+        <input type="number" name="amount" step="0.001" required><br><br>
+
+        <label>Reason for Donation (Optional):</label><br>
+        <textarea name="reason" rows="3" placeholder="Why are you donating?" style="width: 100%;"></textarea><br><br>
+
+        <input type="hidden" name="wallet_address" id="wallet_address" value="{{ user.wallet_address|default_if_none:''|escapejs }}">
+        <input type="hidden" name="signature" id="signature">
+        <input type="hidden" name="message" id="message">
+
+        <button type="button" class="btn" style="background:#f0ad4e; margin-right:10px;" onclick="switchMetaMaskAccount()">🔄 Switch MetaMask Account</button>
+        <button type="button" class="btn" onclick="submitDonation()">Sign & Donate with MetaMask</button>
+        <p style="color:#666; font-size:12px; margin-top:10px;">
+            💡 Tip: To switch accounts, click the MetaMask extension icon in your browser toolbar, 
+            then select a different account before clicking "Switch MetaMask Account" button.
+        </p>
+    </form>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+<script>
+
+let web3;
+let userWallet = "{{ user.wallet_address|default_if_none:''|escapejs }}";
+let walletVerified = "{{ user.wallet_verified|yesno:'true,false'|default:'false' }}" === "true";
+
+async function switchMetaMaskAccount() {
+    if (!window.ethereum) {
+        alert('MetaMask is not installed!');
+        return;
+    }
+
+    try {
+        // Force wallet_requestPermissions to open MetaMask UI
+        if (window.ethereum.request) {
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_requestPermissions',
+                    params: [{ eth_accounts: {} }]
+                });
+            } catch (permError) {
+                // Permissions already granted, continue
+                console.log('Permissions already granted');
+            }
+        }
+
+        // Now request accounts - this will show the account picker
+        const accounts = await window.ethereum.request({
+            method: 'eth_requestAccounts'
+        });
+
+        if (accounts && accounts.length > 0) {
+            const selectedAccount = accounts[0];
+            console.log('Selected account:', selectedAccount);
+            
+            // Check if it matches registered wallet
+            if (selectedAccount.toLowerCase() === userWallet.toLowerCase()) {
+                alert(`✓ CORRECT ACCOUNT SELECTED!\n\nWallet: ${selectedAccount}\n\nThis matches your registered wallet.\nYou can now click "Sign & Donate with MetaMask" to proceed.`);
+            } else {
+                alert(`⚠ ACCOUNT MISMATCH\n\nYou selected:\n${selectedAccount}\n\nYour registered wallet:\n${userWallet}\n\nThese don't match!\n\nPlease switch to the correct account in MetaMask and try again.`);
+            }
+        }
+    } catch (error) {
+        console.error('Account switch error:', error);
+        alert('Account selection error:\n' + error.message);
+    }
+}
+
+async function connectAndSelectAccount() {
+    if (typeof window.ethereum !== 'undefined') {
+        try {
+            // Request account selection (shows all accounts each time)
+            const accounts = await window.ethereum.request({
+                method: 'eth_requestAccounts'
+            });
+
+            // Use the first (currently selected) account
+            const account = accounts[0];
+            console.log('MetaMask account:', account);
+            return account;
+        } catch (error) {
+            alert('MetaMask connection failed: ' + error.message);
+            return null;
+        }
+    } else {
+        alert('MetaMask not installed!');
+        return null;
+    }
+}
+
+async function submitDonation() {
+    if (!walletVerified) {
+        alert('Please verify your wallet first!');
+        return;
+    }
+
+    const charity_select = document.querySelector('[name="charity"]');
+    const amount = document.querySelector('[name="amount"]').value.trim();
+    const reason = document.querySelector('[name="reason"]').value.trim();
+
+    if (!charity_select.value || !amount) {
+        alert('Please fill in all required fields');
+        return;
+    }
+
+    // Get account selection from MetaMask
+    const account = await connectAndSelectAccount();
+    if (!account) return;
+
+    // Verify it matches their registered wallet
+    if (account.toLowerCase() !== userWallet.toLowerCase()) {
+        alert(`⚠ Account mismatch!\n\nYour registered wallet: ${userWallet}\nCurrently selected: ${account}\n\nPlease use the "Switch MetaMask Account" button to select the correct account.`);
+        return;
+    }
+
+    web3 = new Web3(window.ethereum);
+    const charityName = charity_select.options[charity_select.selectedIndex].text;
+    const message = `Donate ${amount} ETH to ${charityName}. Reason: ${reason || 'General donation'}`;
+
+    try {
+        const signature = await web3.eth.personal.sign(message, account, '');
+
+        document.getElementById('wallet_address').value = account;
+        document.getElementById('message').value = message;
+        document.getElementById('signature').value = signature;
+
+        document.getElementById('donationForm').submit();
+    } catch (error) {
+        alert('Signature failed: ' + error.message);
+    }
+}
+
+</script>
+
+{% endblock %}

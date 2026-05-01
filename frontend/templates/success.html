@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-body p-5 text-center">
+                    {% if error %}
+                        <div class="mb-4">
+                            <i class="bi bi-x-circle-fill text-danger" style="font-size: 4rem;"></i>
+                            <h2 class="mt-3 text-danger fw-bold">Transaction Error</h2>
+                            <p class="text-muted">{{ error }}</p>
+                        </div>
+                    {% elif verified %}
+                        <div class="mb-4">
+                            <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+                            <h2 class="mt-3 text-success fw-bold">Transaction Verified!</h2>
+                            <p class="text-muted">Your donation has been successfully verified with MetaMask signature</p>
+                        </div>
+                    {% else %}
+                        <div class="mb-4">
+                            <i class="bi bi-exclamation-triangle-fill text-warning" style="font-size: 4rem;"></i>
+                            <h2 class="mt-3 text-warning fw-bold">Transaction Pending</h2>
+                            <p class="text-muted">Your transaction is being processed</p>
+                        </div>
+                    {% endif %}
+
+                    {% if flagged %}
+                        <div class="alert alert-danger mb-4">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            <strong>AML Alert:</strong> This transaction has been flagged by our Anti-Money Laundering system and requires additional review.
+                        </div>
+                    {% else %}
+                        <div class="alert alert-success mb-4">
+                            <i class="bi bi-check-circle-fill"></i>
+                            <strong>Success:</strong> Your donation has been successfully recorded on the blockchain.
+                        </div>
+                    {% endif %}
+
+                    <div class="alert alert-info mb-4">
+                        <i class="bi bi-shield-check"></i>
+                        <strong>Security Note:</strong> Your transaction was signed with your MetaMask wallet, eliminating impersonation risks and ensuring complete transparency.
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                        <a href="{% url 'index' %}" class="btn btn-primary btn-lg">
+                            <i class="bi bi-house-fill"></i> Go Home
+                        </a>
+                        {% if not error %}
+                            <a href="{% url 'donate' %}" class="btn btn-success btn-lg">
+                                <i class="bi bi-plus-circle"></i> Make Another Donation
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

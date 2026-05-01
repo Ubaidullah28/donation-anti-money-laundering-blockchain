@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<!-- Hero Section -->
+<div class="hero-section">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <h1 class="display-4 fw-bold mb-4">
+                <i class="bi bi-shield-check-fill text-warning"></i>
+                Blockchain-Based Zakat System
+            </h1>
+            <p class="lead mb-4">
+                A transparent and traceable zakat distribution system using blockchain technology
+                with built-in Anti-Money Laundering (AML) checks.
+            </p>
+            <div class="d-flex justify-content-center gap-3">
+                <a href="{% url 'user_signup' %}" class="btn btn-primary btn-lg">
+                    <i class="bi bi-person-plus"></i> Become a Donor
+                </a>
+                <a href="{% url 'charity_signup' %}" class="btn btn-outline-light btn-lg">
+                    <i class="bi bi-building"></i> Register Charity
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Features Section -->
+<div class="row g-4 mb-5">
+    <div class="col-md-4">
+        <div class="feature-card text-center">
+            <div class="feature-icon">
+                <i class="bi bi-eye-fill"></i>
+            </div>
+            <h4 class="fw-bold">Transparent Tracking</h4>
+            <p class="text-muted">Every donation is recorded on blockchain with immutable transaction history and full traceability.</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="feature-card text-center">
+            <div class="feature-icon">
+                <i class="bi bi-shield-lock-fill"></i>
+            </div>
+            <h4 class="fw-bold">Cryptographic Security</h4>
+            <p class="text-muted">MetaMask wallet integration with Ethereum message signing ensures donor authenticity and prevents fraud.</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="feature-card text-center">
+            <div class="feature-icon">
+                <i class="bi bi-search-heart-fill"></i>
+            </div>
+            <h4 class="fw-bold">AML Compliance</h4>
+            <p class="text-muted">Built-in Anti-Money Laundering checks with transaction limits and frequency monitoring.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Section -->
+<div class="row g-4 mb-5">
+    <div class="col-md-3">
+        <div class="stats-card text-center">
+            <h2 class="display-4 fw-bold mb-2">100%</h2>
+            <p class="mb-0">Transparent</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card text-center">
+            <h2 class="display-4 fw-bold mb-2">∞</h2>
+            <p class="mb-0">Immutable</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card text-center">
+            <h2 class="display-4 fw-bold mb-2">0</h2>
+            <p class="mb-0">Fraud Cases</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card text-center">
+            <h2 class="display-4 fw-bold mb-2">24/7</h2>
+            <p class="mb-0">Available</p>
+        </div>
+    </div>
+</div>
+
+<!-- How It Works Section -->
+<div class="card p-5 mb-5">
+    <h2 class="text-center mb-4 fw-bold">
+        <i class="bi bi-diagram-3-fill text-primary"></i>
+        How It Works
+    </h2>
+    <div class="row g-4">
+        <div class="col-md-4 text-center">
+            <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px; font-size: 24px; font-weight: bold;">1</div>
+            <h5 class="mt-3 fw-bold">Register & Verify</h5>
+            <p class="text-muted">Sign up as donor or charity, connect your MetaMask wallet, and verify your identity through cryptographic signing.</p>
+        </div>
+        <div class="col-md-4 text-center">
+            <div class="rounded-circle bg-success text-white d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px; font-size: 24px; font-weight: bold;">2</div>
+            <h5 class="mt-3 fw-bold">Make Donations</h5>
+            <p class="text-muted">Donors select verified charities, specify donation amounts, and sign transactions with MetaMask for secure transfers.</p>
+        </div>
+        <div class="col-md-4 text-center">
+            <div class="rounded-circle bg-warning text-white d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px; font-size: 24px; font-weight: bold;">3</div>
+            <h5 class="mt-3 fw-bold">Fund Control</h5>
+            <p class="text-muted">Charities request fund unlocks, donors approve releases, ensuring complete transparency and accountability.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Call to Action -->
+<div class="text-center mb-5">
+    <div class="card p-4" style="background: linear-gradient(45deg, #667eea, #764ba2); color: white; border: none;">
+        <h3 class="fw-bold mb-3">Ready to Make a Difference?</h3>
+        <p class="mb-4">Join our transparent zakat distribution network and ensure your donations reach those who need them most.</p>
+        <div class="d-flex justify-content-center gap-3">
+            <a href="{% url 'donate' %}" class="btn btn-light btn-lg">
+                <i class="bi bi-heart-fill text-danger"></i> Donate Now
+            </a>
+            <a href="{% url 'user_signup' %}" class="btn btn-outline-light btn-lg">
+                <i class="bi bi-person-plus"></i> Join as Donor
+            </a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

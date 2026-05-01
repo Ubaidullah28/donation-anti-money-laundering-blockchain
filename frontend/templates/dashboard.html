@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="card">
+    <h2>Donation Dashboard</h2>
+
+    <table border="1" cellpadding="10">
+        <tr>
+            <th>Donor</th>
+            <th>Charity</th>
+            <th>Amount</th>
+            <th>Reason</th>
+            <th>Verified</th>
+            <th>Status</th>
+        </tr>
+
+        {% for d in donations %}
+        <tr>
+            <td>{{ d.donor_name }}</td>
+            <td>{{ d.charity.name }}</td>
+            <td>{{ d.amount }}</td>
+            <td>{{ d.reason|truncatechars:30|default:"-" }}</td>
+            <td>
+                {% if d.verified %}
+                    <span style="color:green;">✓ Verified</span>
+                {% else %}
+                    <span style="color:orange;">✗ Unverified</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if d.flagged %}
+                    <span style="color:red;">Flagged</span>
+                {% else %}
+                    <span style="color:green;">Valid</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+
+    </table>
+
+    <h2>Fund Requests</h2>
+
+    <table border="1" cellpadding="10">
+        <tr>
+            <th>Charity</th>
+            <th>Purpose</th>
+            <th>Amount</th>
+            <th>Approvals</th>
+            <th>Authority Approved</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+
+        {% for r in requests %}
+        <tr>
+            <td>{{ r.charity.name }}</td>
+            <td>{{ r.purpose }}</td>
+            <td>{{ r.amount }}</td>
+            <td>{{ r.approvals }}/2</td>
+            <td>
+                {% if r.authority_approved %}
+                    <span style="color:green;">✓ Approved</span>
+                {% else %}
+                    <span style="color:orange;">Pending</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if r.completed %}
+                    Completed
+                {% else %}
+                    Pending
+                {% endif %}
+            </td>
+            <td>
+                {% if not r.authority_approved %}
+                    <a href="/authority-approve/{{ r.id }}">Authority Approve</a> |
+                {% endif %}
+                <a href="/approve/{{ r.id }}">Approve</a> |
+                <a href="/execute/{{ r.id }}">Execute</a>
+            </td>
+        </tr>
+        {% endfor %}
+
+    </table>
+</div>
+
+{% endblock %}
