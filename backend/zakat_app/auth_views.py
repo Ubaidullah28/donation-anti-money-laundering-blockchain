@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
-from .models import UserAccount, Charity, Donation, FundUnlockRequest
+from .models import UserAccount, Charity, Donation, FundUnlockRequest, CharityExpense
 from .signature_verify import verify_signature
 from .aml import check_aml
 import hashlib
@@ -352,11 +352,15 @@ def charity_dashboard(request):
     charity = user.charity_admin
     donations = Donation.objects.filter(charity=charity).select_related('donor')
     fund_requests = FundUnlockRequest.objects.filter(charity=charity).select_related('donor')
+    expenses = CharityExpense.objects.filter(charity=charity).order_by('-created_at')[:10]  # Recent expenses
 
     return render(request, "charity/dashboard.html", {
         "charity": charity,
         "donations": donations,
-        "fund_requests": fund_requests
+        "fund_requests": fund_requests,
+        "expenses": expenses,
+        "total_unlocked": charity.total_unlocked_funds,
+        "available_balance": charity.available_balance
     })
 
 
@@ -407,3 +411,49 @@ def request_fund_unlock(request):
         })
 
     return render(request, "charity/request_fund.html", {"donations": donations})
+
+
+@login_required(login_url='charity_login')
+def submit_expense(request):
+    user = request.user
+    if not hasattr(user, 'charity_admin'):
+        return redirect('charity_login')
+
+    charity = user.charity_admin
+
+    if request.method == "POST":
+        amount = float(request.POST.get('amount'))
+        category = request.POST.get('category')
+        description = request.POST.get('description')
+        transaction_hash = request.POST.get('transaction_hash', '')
+
+        if amount <= 0:
+            return render(request, "charity/submit_expense.html", {
+                "error": "Expense amount must be a positive number.",
+                "charity": charity
+            })
+
+        if amount > charity.available_balance:
+            return render(request, "charity/submit_expense.html", {
+                "error": f"Insufficient funds. Available balance: {charity.available_balance} ETH",
+                "charity": charity
+            })
+
+        try:
+            CharityExpense.objects.create(
+                charity=charity,
+                amount=amount,
+                category=category,
+                description=description,
+                transaction_hash=transaction_hash if transaction_hash else None
+            )
+            return render(request, "success.html", {
+                "message": f"Expense of {amount} ETH submitted successfully"
+            })
+        except ValueError as e:
+            return render(request, "charity/submit_expense.html", {
+                "error": str(e),
+                "charity": charity
+            })
+
+    return render(request, "charity/submit_expense.html", {"charity": charity})

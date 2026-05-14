@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Charity Expenses - Admin{% endblock %}
+
+{% block content %}
+<div class="py-5">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3 mb-4">
+        <div>
+            <h1 class="text-white fw-bold">Charity Expense History</h1>
+            <p class="text-white-50 mb-0">Track and approve charity spending from unlocked funds. Only admins can view this page.</p>
+        </div>
+        <div class="text-end">
+            <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-light btn-lg me-2">
+                <i class="bi bi-arrow-left"></i> Admin Dashboard
+            </a>
+            <a href="{% url 'admin_view_charities' %}" class="btn btn-light btn-lg">
+                <i class="bi bi-building"></i> Charities
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card p-4 shadow-sm">
+                <h6 class="text-uppercase text-muted mb-3">Expense Entries</h6>
+                <h2 class="fw-bold">{{ expenses|length }}</h2>
+                <p class="text-muted mb-0">Total expense records submitted by charities.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-4 shadow-sm">
+                <h6 class="text-uppercase text-muted mb-3">Pending Approval</h6>
+                <h2 class="fw-bold text-warning">{{ pending_expenses }}</h2>
+                <p class="text-muted mb-0">Expenses waiting for admin approval.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-4 shadow-sm">
+                <h6 class="text-uppercase text-muted mb-3">Approved Total</h6>
+                <h2 class="fw-bold text-success">{{ approved_total|floatformat:2 }} ETH</h2>
+                <p class="text-muted mb-0">Sum of approved expenses.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card p-4 mb-5 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h3 class="mb-1">Expense Ledger</h3>
+                <p class="text-muted mb-0">Review the full spending history of charities and approve legitimate expenses.</p>
+            </div>
+            <a href="{% url 'admin_view_charities' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-building"></i> Charity Accounts
+            </a>
+        </div>
+
+        {% if expenses %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="text-secondary">Charity</th>
+                            <th class="text-secondary">Category</th>
+                            <th class="text-secondary">Amount</th>
+                            <th class="text-secondary">Description</th>
+                            <th class="text-secondary">Transaction</th>
+                            <th class="text-secondary">Status</th>
+                            <th class="text-secondary">Date</th>
+                            <th class="text-secondary">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for expense in expenses %}
+                        <tr>
+                            <td class="fw-semibold">{{ expense.charity.name }}</td>
+                            <td><span class="badge bg-secondary">{{ expense.get_category_display }}</span></td>
+                            <td class="text-danger fw-bold">{{ expense.amount|floatformat:4 }} ETH</td>
+                            <td><span class="text-muted">{{ expense.description|truncatechars:70 }}</span></td>
+                            <td>
+                                {% if expense.transaction_hash %}
+                                    <code class="text-break" style="font-size: 0.85rem;">{{ expense.transaction_hash|truncatechars:22 }}</code>
+                                {% else %}
+                                    <span class="text-muted">Not recorded</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if expense.approved_by_admin %}
+                                    <span class="badge bg-success">Approved</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ expense.created_at|date:"M d, Y" }}</td>
+                            <td>
+                                {% if not expense.approved_by_admin %}
+                                    <a href="{% url 'approve_expense' expense.id %}" class="btn btn-sm btn-success">
+                                        <i class="bi bi-check2-circle"></i> Approve
+                                    </a>
+                                {% else %}
+                                    <span class="text-success"><i class="bi bi-check-circle-fill"></i></span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-receipt text-white" style="font-size: 4rem;"></i>
+                <h4 class="text-white mt-3">No charity expenses submitted yet.</h4>
+                <p class="text-white-50">Expense entries will appear here once charities record spending from unlocked funds.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

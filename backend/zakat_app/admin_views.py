@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.cache import never_cache
-from .models import UserAccount, Charity, Donation, Admin, FundUnlockRequest
+from .models import UserAccount, Charity, Donation, Admin, FundUnlockRequest, CharityExpense
 from cryptography.fernet import Fernet
 
 ENCRYPTION_KEY = b'abcdefghijklmnopqrstuvwxzy12345678901234567890123456789012'
@@ -156,6 +156,42 @@ def view_charities(request):
     }
 
     return render(request, "admin/view_charities.html", context)
+
+
+@login_required(login_url='admin_login')
+@never_cache
+def view_charity_expenses(request):
+    """View all charity expenses"""
+    if not Admin.objects.filter(user=request.user).exists():
+        return redirect('admin_login')
+
+    expenses = CharityExpense.objects.select_related('charity').order_by('-created_at')
+    pending_expenses = expenses.filter(approved_by_admin=False).count()
+    approved_total = sum(exp.amount for exp in expenses if exp.approved_by_admin)
+
+    context = {
+        'expenses': expenses,
+        'pending_expenses': pending_expenses,
+        'approved_total': approved_total,
+    }
+
+    return render(request, "admin/view_charity_expenses.html", context)
+
+
+@login_required(login_url='admin_login')
+@never_cache
+def approve_expense(request, expense_id):
+    """Approve a charity expense"""
+    if not Admin.objects.filter(user=request.user).exists():
+        return redirect('admin_login')
+
+    try:
+        expense = CharityExpense.objects.get(id=expense_id)
+        expense.approved_by_admin = True
+        expense.save()
+        return redirect('view_charity_expenses')
+    except CharityExpense.DoesNotExist:
+        return render(request, "admin/error.html", {"message": "Expense not found"})
 
 
 @login_required(login_url='admin_login')

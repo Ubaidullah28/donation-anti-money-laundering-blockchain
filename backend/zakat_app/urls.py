@@ -26,6 +26,7 @@ urlpatterns = [
     # Charity Dashboard & Features
     path('charity/dashboard/', auth_views.charity_dashboard, name='charity_dashboard'),
     path('charity/request-fund/', auth_views.request_fund_unlock, name='request_fund_unlock'),
+    path('charity/submit-expense/', auth_views.submit_expense, name='submit_expense'),
 
     # Admin Panel
     path('admin/login/', admin_views.admin_login, name='admin_login'),
@@ -35,6 +36,8 @@ urlpatterns = [
     path('admin/donor/<int:donor_id>/', admin_views.view_donor_details, name='admin_donor_details'),
     path('admin/donations/', admin_views.view_donations, name='admin_view_donations'),
     path('admin/charities/', admin_views.view_charities, name='admin_view_charities'),
+    path('admin/charity-expenses/', admin_views.view_charity_expenses, name='view_charity_expenses'),
+    path('admin/approve-expense/<int:expense_id>/', admin_views.approve_expense, name='approve_expense'),
     path('admin/flag/<int:donation_id>/', admin_views.flag_donation, name='admin_flag_donation'),
     path('admin/register-admin/', admin_views.register_admin, name='admin_register_admin'),
     path('admin/search-donor/', admin_views.search_donor, name='admin_search_donor'),

@@ -15,20 +15,20 @@
 <div class="row g-4 mb-5">
     <div class="col-md-3">
         <div class="stats-card text-center">
-            <h3 class="display-5 fw-bold">{{ total_received|floatformat:2 }}</h3>
-            <p class="mb-0">Total Received (ETH)</p>
+            <h3 class="display-5 fw-bold">{{ total_unlocked|floatformat:2 }}</h3>
+            <p class="mb-0">Total Unlocked (ETH)</p>
         </div>
     </div>
     <div class="col-md-3">
         <div class="stats-card text-center">
-            <h3 class="display-5 fw-bold">{{ donations|length }}</h3>
-            <p class="mb-0">Total Donations</p>
+            <h3 class="display-5 fw-bold">{{ available_balance|floatformat:2 }}</h3>
+            <p class="mb-0">Available Balance (ETH)</p>
         </div>
     </div>
     <div class="col-md-3">
         <div class="stats-card text-center">
-            <h3 class="display-5 fw-bold">{{ fund_requests|length }}</h3>
-            <p class="mb-0">Fund Requests</p>
+            <h3 class="display-5 fw-bold">{{ charity.total_spent|floatformat:2 }}</h3>
+            <p class="mb-0">Total Spent (ETH)</p>
         </div>
     </div>
     <div class="col-md-3">
@@ -71,6 +71,9 @@
         <div class="col-md-4 text-end">
             <a href="{% url 'request_fund_unlock' %}" class="btn btn-primary me-2">
                 <i class="bi bi-unlock-fill"></i> Request Funds
+            </a>
+            <a href="{% url 'submit_expense' %}" class="btn btn-success me-2">
+                <i class="bi bi-cash-stack"></i> Submit Expense
             </a>
             <a href="{% url 'charity_logout' %}" class="btn btn-danger">
                 <i class="bi bi-box-arrow-right"></i> Logout
@@ -202,6 +205,64 @@
             <p class="text-muted">Create fund unlock requests to access donated funds for your charitable work.</p>
             <a href="{% url 'request_fund_unlock' %}" class="btn btn-primary">
                 <i class="bi bi-plus-circle"></i> Create Request
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Recent Expenses -->
+<div class="card p-4">
+    <h3 class="fw-bold mb-4">
+        <i class="bi bi-receipt text-warning"></i>
+        Recent Expenses
+    </h3>
+    
+    {% if expenses %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th><i class="bi bi-tag-fill"></i> Category</th>
+                        <th><i class="bi bi-coin"></i> Amount</th>
+                        <th><i class="bi bi-chat-quote"></i> Description</th>
+                        <th><i class="bi bi-shield-check"></i> Approved</th>
+                        <th><i class="bi bi-calendar"></i> Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for expense in expenses %}
+                    <tr>
+                        <td>
+                            <span class="badge bg-secondary">{{ expense.get_category_display }}</span>
+                        </td>
+                        <td class="fw-bold text-danger">{{ expense.amount|floatformat:4 }} ETH</td>
+                        <td>
+                            <small class="text-muted">{{ expense.description|truncatechars:50 }}</small>
+                        </td>
+                        <td>
+                            {% if expense.approved_by_admin %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle-fill"></i> Approved
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning">
+                                    <i class="bi bi-clock-fill"></i> Pending
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>{{ expense.created_at|date:"M d, Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-receipt text-muted" style="font-size: 3rem;"></i>
+            <h5 class="text-muted mt-3">No Expenses Yet</h5>
+            <p class="text-muted">Record your charitable expenses here.</p>
+            <a href="{% url 'submit_expense' %}" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> Submit First Expense
             </a>
         </div>
     {% endif %}

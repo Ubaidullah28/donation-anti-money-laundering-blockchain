@@ -43,7 +43,18 @@ class Charity(models.Model):
     wallet_address = models.CharField(max_length=200, unique=True)
     description = models.TextField(blank=True)
     verified = models.BooleanField(default=False)
+    total_spent = models.FloatField(default=0, help_text="Total amount spent from unlocked funds")
     created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def total_unlocked_funds(self):
+        """Total unlocked funds available for spending"""
+        return sum(donation.unlocked_balance for donation in self.donations.all())
+
+    @property
+    def available_balance(self):
+        """Available balance for spending (unlocked - spent)"""
+        return self.total_unlocked_funds - self.total_spent
 
     def __str__(self):
         return self.name
@@ -114,6 +125,46 @@ class FundUnlockRequest(models.Model):
 
     def __str__(self):
         return f"{self.charity.name} requesting {self.amount} ETH from {self.donor.username}"
+
+
+class CharityExpense(models.Model):
+    """Expense record for charity spending unlocked funds"""
+    CATEGORY_CHOICES = [
+        ('bills', 'Bills and Utilities'),
+        ('supplies', 'Supplies and Equipment'),
+        ('services', 'Services and Maintenance'),
+        ('other', 'Other Expenses'),
+    ]
+    
+    charity = models.ForeignKey(Charity, on_delete=models.CASCADE, related_name='expenses')
+    amount = models.FloatField()
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='other')
+    description = models.TextField(help_text="Detailed description of the expense")
+    transaction_hash = models.CharField(max_length=200, blank=True, null=True, help_text="Blockchain transaction hash if applicable")
+    approved_by_admin = models.BooleanField(default=False, help_text="Admin approval required for large expenses")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            # creation: reserve unlocked funds for this expense
+            if self.amount > self.charity.available_balance:
+                raise ValueError("Insufficient unlocked funds available")
+            self.charity.total_spent += self.amount
+            self.charity.save()
+        else:
+            # update: avoid re-checking funds for an already reserved expense
+            old_instance = CharityExpense.objects.get(pk=self.pk)
+            if self.amount != old_instance.amount:
+                delta = self.amount - old_instance.amount
+                if delta > 0 and delta > self.charity.available_balance:
+                    raise ValueError("Insufficient unlocked funds available")
+                self.charity.total_spent += delta
+                self.charity.save()
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.charity.name} - {self.category}: {self.amount} ETH"
 
 
 class Request(models.Model):
