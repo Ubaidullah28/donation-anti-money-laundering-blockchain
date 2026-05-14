@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>View Charities - Admin Panel</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }
+        header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        header h1 { font-size: 24px; }
+        .back-btn { background: #ff9100; padding: 10px 20px; border: none; border-radius: 5px; color: white; cursor: pointer; text-decoration: none; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        table { width: 100%; background: white; border-collapse: collapse; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; }
+        th { background: #667eea; color: white; padding: 15px; text-align: left; font-weight: 600; }
+        td { padding: 12px 15px; border-bottom: 1px solid #eee; }
+        tr:hover { background: #f9f9f9; }
+        .status-badge { padding: 5px 10px; border-radius: 3px; font-size: 12px; font-weight: 600; }
+        .status-verified { background: #d4edda; color: #155724; }
+        .status-pending { background: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🏢 All Registered Charities</h1>
+        <a href="/admin/dashboard/" class="back-btn">← Back</a>
+    </header>
+
+    <div class="container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Charity Name</th>
+                    <th>Wallet Address</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th>Registered</th>
+                    <th>Total Donations</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for charity in charities %}
+                <tr>
+                    <td><strong>{{ charity.name }}</strong></td>
+                    <td><code>{{ charity.wallet_address|truncatechars:25 }}</code></td>
+                    <td>{{ charity.description|truncatewords:15 }}</td>
+                    <td>
+                        {% if charity.verified %}
+                            <span class="status-badge status-verified">✓ Verified</span>
+                        {% else %}
+                            <span class="status-badge status-pending">⏳ Pending</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ charity.created_at|date:"M d, Y" }}</td>
+                    <td><strong>{{ charity.donations.count }}</strong></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="text-align: center; color: #999;">No charities found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

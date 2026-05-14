@@ -37,8 +37,10 @@
         <input type="hidden" name="signature" id="signature">
         <input type="hidden" name="message" id="message">
 
-        <button type="button" class="btn" style="background:#f0ad4e; margin-right:10px;" onclick="switchMetaMaskAccount()">🔄 Switch MetaMask Account</button>
-        <button type="button" class="btn" onclick="submitDonation()">Sign & Donate with MetaMask</button>
+        {% if not user.wallet_verified %}
+            <button type="button" class="btn btn-primary" style="margin-right:10px;" onclick="connectAndVerifyWallet()">Connect & Verify Wallet</button>
+        {% endif %}
+        <button type="button" class="btn btn-success" onclick="submitDonation()">Sign & Donate with MetaMask</button>
         <p style="color:#666; font-size:12px; margin-top:10px;">
             💡 Tip: To switch accounts, click the MetaMask extension icon in your browser toolbar, 
             then select a different account before clicking "Switch MetaMask Account" button.
@@ -50,9 +52,76 @@
 <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
 <script>
 
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+}
+
 let web3;
 let userWallet = "{{ user.wallet_address|default_if_none:''|escapejs }}";
 let walletVerified = "{{ user.wallet_verified|yesno:'true,false'|default:'false' }}" === "true";
+const csrfToken = getCookie('csrftoken');
+
+async function connectAndVerifyWallet() {
+    if (!window.ethereum) {
+        alert('MetaMask is not installed!');
+        return;
+    }
+
+    try {
+        try {
+            await window.ethereum.request({
+                method: 'wallet_requestPermissions',
+                params: [{ eth_accounts: {} }]
+            });
+        } catch (permError) {
+            console.log('wallet_requestPermissions:', permError.message || permError);
+        }
+
+        const accounts = await window.ethereum.request({
+            method: 'eth_requestAccounts'
+        });
+
+        if (!accounts || accounts.length === 0) {
+            alert('No MetaMask account available. Please create or unlock an account in MetaMask.');
+            return;
+        }
+
+        const account = accounts[0];
+        userWallet = account;
+        web3 = new Web3(window.ethereum);
+
+        const message = `Verify my MetaMask wallet for {{ user.username }}: ${account}`;
+        const signature = await web3.eth.personal.sign(message, account, '');
+
+        const response = await fetch('{% url "update_wallet" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                wallet_address: account,
+                signature: signature,
+                message: message
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            walletVerified = true;
+            document.getElementById('wallet_address').value = account;
+            alert('✓ Wallet verified successfully! Reloading page now.');
+            window.location.reload();
+        } else {
+            alert('Verification failed: ' + data.message);
+        }
+    } catch (error) {
+        alert('Wallet verification failed: ' + error.message);
+    }
+}
 
 async function switchMetaMaskAccount() {
     if (!window.ethereum) {

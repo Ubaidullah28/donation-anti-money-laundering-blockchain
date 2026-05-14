@@ -1,12 +1,36 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from cryptography.fernet import Fernet
+import base64
+
+# Generate a proper encryption key (44 bytes base64 = 32 bytes decoded)
+SECRET_KEY_BYTES = b'ThisIsA32ByteSecretKeyForEncryption!!'[:32]
+ENCRYPTION_KEY = base64.urlsafe_b64encode(SECRET_KEY_BYTES)
 
 class UserAccount(AbstractUser):
     """Extended User model for donors"""
     wallet_address = models.CharField(max_length=200, blank=True, null=True)
     wallet_verified = models.BooleanField(default=False)
     total_donated = models.FloatField(default=0)
+    encrypted_kyc = models.TextField(blank=True, null=True)  # Encrypted KYC data
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        # Encrypt KYC data if present
+        if self.username and not self.encrypted_kyc:
+            cipher = Fernet(ENCRYPTION_KEY)
+            self.encrypted_kyc = cipher.encrypt(self.username.encode()).decode()
+        super().save(*args, **kwargs)
+
+    def decrypt_kyc(self):
+        if self.encrypted_kyc:
+            cipher = Fernet(ENCRYPTION_KEY)
+            return cipher.decrypt(self.encrypted_kyc.encode()).decode()
+        return None
+
+    @property
+    def is_admin(self):
+        return hasattr(self, 'admin')
 
     def __str__(self):
         return f"Donor: {self.username}"
@@ -32,6 +56,7 @@ class Donation(models.Model):
     donor = models.ForeignKey(UserAccount, on_delete=models.CASCADE, related_name='donations', null=True, blank=True)
     charity = models.ForeignKey(Charity, on_delete=models.CASCADE, related_name='donations', null=True, blank=True)
     wallet_address = models.CharField(max_length=200, blank=True, null=True)
+    stealth_address = models.CharField(max_length=200, blank=True, null=True)  # Unique address for anonymity
     amount = models.FloatField()
     reason = models.TextField(blank=True, help_text="Reason for donation")
     flagged = models.BooleanField(default=False)
@@ -104,3 +129,12 @@ class Request(models.Model):
 
     def __str__(self):
         return f"{self.charity.name if self.charity else 'Unknown'} - {self.purpose}: {self.amount} ETH"
+
+
+class Admin(models.Model):
+    user = models.OneToOneField(UserAccount, on_delete=models.CASCADE)
+    can_decrypt = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Admin: {self.user.username}"

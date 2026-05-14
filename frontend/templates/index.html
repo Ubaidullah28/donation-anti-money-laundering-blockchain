@@ -85,6 +85,46 @@
     </div>
 </div>
 
+<!-- Top Donations Section -->
+<div class="card p-4 mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold">Top Donations</h2>
+            <p class="text-muted mb-0">See the largest verified donations and track major contributions in the network.</p>
+        </div>
+        <a href="{% url 'donation_history' %}" class="btn btn-outline-light btn-lg">View Full History</a>
+    </div>
+
+    <div class="row g-4">
+        {% for donation in top_three_donations %}
+        <div class="col-md-4">
+            <div class="donation-card pulse-highlight">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <span class="badge bg-success">Top {{ forloop.counter }}</span>
+                    <small class="text-muted">{{ donation.created_at|date:"M d, Y" }}</small>
+                </div>
+                <h4 class="fw-bold mb-2">{{ donation.charity.name }}</h4>
+                <p class="text-muted mb-3">🔗 Wallet: <code>{{ donation.stealth_address|default:donation.wallet_address|truncatechars:20 }}</code></p>
+                <div class="d-flex align-items-baseline gap-2 mb-3">
+                    <span class="donation-amount">{{ donation.amount|floatformat:4 }} ETH</span>
+                </div>
+                <p class="mb-2"><strong>Status:</strong> 
+                    {% if donation.verified %}
+                    <span style="color: #28a745;">✓ Verified</span>
+                    {% else %}
+                    <span style="color: #ffc107;">⏳ Pending</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-light text-center">No donation history is available yet.</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
 <!-- How It Works Section -->
 <div class="card p-5 mb-5">
     <h2 class="text-center mb-4 fw-bold">

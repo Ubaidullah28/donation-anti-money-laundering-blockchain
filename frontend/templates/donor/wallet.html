@@ -33,9 +33,27 @@
 let web3;
 let selectedAccount = null;
 
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+}
+
+const csrfToken = getCookie('csrftoken');
+
 async function connectMetaMask() {
     if (typeof window.ethereum !== 'undefined') {
         try {
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_requestPermissions',
+                    params: [{ eth_accounts: {} }]
+                });
+            } catch (permError) {
+                console.log('wallet_requestPermissions:', permError.message || permError);
+            }
+
             const accounts = await window.ethereum.request({
                 method: 'eth_requestAccounts'
             });
@@ -46,7 +64,7 @@ async function connectMetaMask() {
             accounts.forEach((acc, idx) => {
                 const option = document.createElement('option');
                 option.value = acc;
-                option.textContent = `${acc}`;
+                option.textContent = acc;
                 option.selected = idx === 0;
                 selectElement.appendChild(option);
             });
@@ -65,7 +83,6 @@ async function connectMetaMask() {
             document.getElementById('verifyBtn').style.display = 'inline-block';
 
             web3 = new Web3(window.ethereum);
-
             alert('MetaMask connected! Select your account and click "Verify Wallet"');
         } catch (error) {
             alert('Connection failed: ' + error.message);
@@ -86,12 +103,11 @@ async function verifyWallet() {
     try {
         const signature = await web3.eth.personal.sign(message, selectedAccount, '');
 
-        // Send to backend
         const response = await fetch('{% url "update_wallet" %}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
+                'X-CSRFToken': csrfToken
             },
             body: JSON.stringify({
                 wallet_address: selectedAccount,

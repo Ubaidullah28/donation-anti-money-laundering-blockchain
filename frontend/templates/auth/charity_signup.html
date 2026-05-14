@@ -40,17 +40,14 @@
                                 <i class="bi bi-wallet-fill"></i> MetaMask Wallet Address
                             </label>
                             <div class="mb-2">
-                                <button type="button" id="connectWalletButton" class="btn btn-outline-primary me-2">
+                                <button type="button" id="connectWalletButton" class="btn btn-primary">
                                     <i class="bi bi-wallet2"></i> Connect MetaMask
-                                </button>
-                                <button type="button" id="reconnectWalletButton" class="btn btn-outline-warning">
-                                    <i class="bi bi-arrow-repeat"></i> Switch Account
                                 </button>
                             </div>
                             {{ form.wallet_address }}
-                            <div id="walletHint" class="form-text">
-                                <i class="bi bi-info-circle-fill text-info"></i>
-                                If MetaMask opens Account 1 automatically, switch accounts inside MetaMask and then click "Switch Account".
+                            <div id="walletHint" class="form-text text-info">
+                                <i class="bi bi-info-circle-fill"></i>
+                                Click Connect MetaMask and choose the wallet account you want to register. If no account appears, create one from the MetaMask popup.
                             </div>
                             {% if form.wallet_address.errors %}
                                 <div class="text-danger small mt-1">
@@ -138,6 +135,17 @@
         }
 
         try {
+            // Request permissions first to show MetaMask connection UI.
+            await window.ethereum.request({
+                method: 'wallet_requestPermissions',
+                params: [{ eth_accounts: {} }]
+            });
+        } catch (permError) {
+            // Ignore if permissions are already granted or if the request is declined.
+            console.log('wallet_requestPermissions:', permError.message || permError);
+        }
+
+        try {
             const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
             return handleAccountsChanged(accounts);
         } catch (error) {
@@ -178,26 +186,8 @@
         }
     }
 
-    const reconnectWalletButton = document.getElementById('reconnectWalletButton');
-
     connectWalletButton.addEventListener('click', async () => {
         await connectMetaMask();
-    });
-
-    reconnectWalletButton.addEventListener('click', async () => {
-        if (!window.ethereum) {
-            alert('MetaMask is not installed.');
-            return;
-        }
-
-        try {
-            await window.ethereum.request({ method: 'eth_requestAccounts' });
-        } catch (error) {
-            console.warn('Reconnect request failed:', error.message || error);
-        }
-
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        await handleAccountsChanged(accounts);
     });
 
     if (window.ethereum) {

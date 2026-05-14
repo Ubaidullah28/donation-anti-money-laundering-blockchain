@@ -7,6 +7,8 @@ from django.views.decorators.http import require_http_methods
 from .models import UserAccount, Charity, Donation, FundUnlockRequest
 from .signature_verify import verify_signature
 from .aml import check_aml
+import hashlib
+import uuid
 
 
 # ====== AUTHENTICATION FORMS ======
@@ -84,7 +86,32 @@ class CharitySignUpForm(forms.ModelForm):
 # ====== PUBLIC PAGES ======
 
 def index(request):
-    return render(request, "index.html")
+    top_three_donations = Donation.objects.filter(verified=True).select_related('donor', 'charity').order_by('-amount')[:3]
+    return render(request, "index.html", {
+        "top_three_donations": top_three_donations
+    })
+
+
+def donation_history(request):
+    filter_key = request.GET.get('filter', '')
+    donations = Donation.objects.filter(verified=True).select_related('donor', 'charity')
+
+    if filter_key == '50':
+        donations = donations.filter(amount__gte=50)
+    elif filter_key == '100':
+        donations = donations.filter(amount__gte=100)
+    elif filter_key == 'top3':
+        donations = donations.order_by('-amount')[:3]
+    else:
+        donations = donations.order_by('-created_at')
+
+    top_three_donations = Donation.objects.filter(verified=True).select_related('donor', 'charity').order_by('-amount')[:3]
+
+    return render(request, "donation_history.html", {
+        "donations": donations,
+        "top_three_donations": top_three_donations,
+        "selected_filter": filter_key,
+    })
 
 
 # ====== USER AUTHENTICATION ======
@@ -264,10 +291,17 @@ def donate(request):
         recent = Donation.objects.filter(charity=charity, donor=donor).values_list('donor', flat=True)
         flagged = check_aml(donor.username, amount, list(recent))
 
+        # Generate stealth address (using hash for anonymity)
+        stealth_hash = hashlib.sha256(
+            (str(uuid.uuid4()) + wallet_address + str(donor.id)).encode()
+        ).hexdigest()
+        stealth_address = "0x" + stealth_hash[:40]
+
         donation = Donation.objects.create(
             donor=donor,
             charity=charity,
             wallet_address=wallet_address,
+            stealth_address=stealth_address,
             amount=amount,
             reason=reason,
             flagged=flagged,
@@ -333,7 +367,7 @@ def request_fund_unlock(request):
         return redirect('charity_login')
 
     charity = user.charity_admin
-    donations = Donation.objects.filter(charity=charity, verified=True)
+    donations = Donation.objects.filter(charity=charity, verified=True, locked_balance__gt=0)
 
     if request.method == "POST":
         donation_id = request.POST.get('donation')
@@ -348,10 +382,16 @@ def request_fund_unlock(request):
                 "error": "Invalid donation selected"
             })
 
-        if amount > donation.amount:
+        if amount <= 0:
             return render(request, "charity/request_fund.html", {
                 "donations": donations,
-                "error": f"Request amount cannot exceed donated amount ({donation.amount} ETH)"
+                "error": "Request amount must be a positive number."
+            })
+
+        if amount > donation.locked_balance:
+            return render(request, "charity/request_fund.html", {
+                "donations": donations,
+                "error": f"Request amount cannot exceed remaining locked balance ({donation.locked_balance} ETH)."
             })
 
         FundUnlockRequest.objects.create(

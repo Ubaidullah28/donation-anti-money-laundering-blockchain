@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>View Donors - Admin Panel</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }
+        header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        header h1 { font-size: 24px; }
+        .back-btn { background: #ff9100; padding: 10px 20px; border: none; border-radius: 5px; color: white; cursor: pointer; text-decoration: none; }
+        .back-btn:hover { background: #ff8000; }
+        .logout-btn { background: #ff6b6b; padding: 10px 20px; border: none; border-radius: 5px; color: white; cursor: pointer; text-decoration: none; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        table { width: 100%; background: white; border-collapse: collapse; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; }
+        th { background: #667eea; color: white; padding: 15px; text-align: left; font-weight: 600; }
+        td { padding: 12px 15px; border-bottom: 1px solid #eee; }
+        tr:hover { background: #f9f9f9; }
+        .kyc-cell { background: #f0f7ff; color: #667eea; font-weight: 600; }
+        .view-btn { background: #667eea; color: white; padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; font-size: 12px; }
+        .view-btn:hover { background: #5568d3; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>👥 View All Donors (with Decrypted KYC)</h1>
+        <div>
+            <a href="/admin/dashboard/" class="back-btn">← Back</a>
+            <a href="/admin/logout/" class="logout-btn">Logout</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Wallet Address</th>
+                    <th class="kyc-cell">🔑 Decrypted KYC</th>
+                    <th>Total Donated</th>
+                    <th>Registered</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for donor in donors %}
+                <tr>
+                    <td><strong>{{ donor.username }}</strong></td>
+                    <td>{{ donor.email }}</td>
+                    <td><code>{{ donor.wallet_address|truncatechars:20 }}</code></td>
+                    <td class="kyc-cell">{{ donor.kyc_decrypted }}</td>
+                    <td><strong>{{ donor.total_donated }} ETH</strong></td>
+                    <td>{{ donor.created_at|date:"M d, Y" }}</td>
+                    <td><a href="/admin/donor/{{ donor.id }}/" class="view-btn">View Details</a></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center; color: #999;">No donors found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

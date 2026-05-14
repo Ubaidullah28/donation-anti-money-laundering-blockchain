@@ -116,6 +116,30 @@
             color: #3498db;
             margin-bottom: 20px;
         }
+        .donation-card {
+            border-radius: 18px;
+            padding: 28px;
+            margin-bottom: 20px;
+            background: rgba(255,255,255,0.92);
+            box-shadow: 0 18px 30px rgba(0,0,0,0.08);
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+        .donation-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 22px 40px rgba(0,0,0,0.12);
+        }
+        .donation-amount {
+            font-size: 2rem;
+            color: #2c3e50;
+            letter-spacing: 0.02em;
+        }
+        .pulse-highlight {
+            animation: pulseGlow 3s ease-in-out infinite;
+        }
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 0 rgba(46, 204, 113, 0.15); }
+            50% { box-shadow: 0 0 25px rgba(46, 204, 113, 0.25); }
+        }
         .stats-card {
             background: linear-gradient(45deg, #667eea, #764ba2);
             color: white;
@@ -160,6 +184,16 @@
             <ul class="navbar-nav me-auto">
                 <li class="nav-item">
                     <a class="nav-link" href="/">🏠 Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'donation_history' %}">📜 History</a>
+                </li>
+                <li class="nav-item">
+                    {% if user.is_authenticated and user.is_admin %}
+                        <a class="nav-link" href="/admin/dashboard/">🛠 Admin Panel</a>
+                    {% else %}
+                        <a class="nav-link" href="/admin/login/">🛠 Admin Panel</a>
+                    {% endif %}
                 </li>
                 
                 {% if user.is_authenticated %}

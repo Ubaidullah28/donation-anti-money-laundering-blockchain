@@ -1232,69 +1232,447 @@ python manage.py createsuperuser
 
 ---
 
-## 18. PROJECT STRUCTURE DIAGRAM
+## 18.5 PHASE 3: PUBLIC TRANSPARENCY & USAGE TRACKING IMPLEMENTATION
+**Completed: May 5, 2026**
 
+### Overview
+Phase 3 focused on creating comprehensive public transparency through a donation history module, top donations showcase on the homepage, and advanced fund usage tracking with locked/unlocked balance validation.
+
+### 18.5.1 Public Donation History Page
+
+**Route**: `/history/`
+
+**Features Implemented**:
+- ✅ Public access (no login required)
+- ✅ Comprehensive donation ledger display
+- ✅ Full wallet address visibility (both donor and charity)
+- ✅ Amount and used amount tracking
+- ✅ AML status display with color-coded badges
+- ✅ Multiple filter options
+
+**Database Query Optimization**:
+```python
+# backend/zakat_app/auth_views.py - donation_history view
+donations = Donation.objects.filter(verified=True).select_related('donor', 'charity')
+
+# Filter variations
+if filter_key == '50':
+    donations = donations.filter(amount__gte=50)  # ETH ≥ 50
+elif filter_key == '100':
+    donations = donations.filter(amount__gte=100)  # ETH ≥ 100
+elif filter_key == 'top3':
+    donations = donations.order_by('-amount')[:3]  # Top 3
+else:
+    donations = donations.order_by('-created_at')  # All, newest first
 ```
-transparent_donation_sys/
-├── README.md
-├── requirements.txt
-├── PROJECT_SUMMARY.md (this file)
-│
-├── backend/
-│   ├── db.sqlite3                    # SQLite database
-│   ├── manage.py
-│   ├── zakat_project/
-│   │   ├── __init__.py
-│   │   ├── settings.py               # Django configuration
-│   │   ├── urls.py                   # URL routing
-│   │   └── wsgi.py
-│   │
-│   └── zakat_app/
-│       ├── __init__.py
-│       ├── admin.py                  # Django admin config
-│       ├── apps.py
-│       ├── models.py                 # Database models
-│       ├── views.py                  # Main views
-│       ├── auth_views.py             # Authentication views
-│       ├── urls.py                   # App URL routes
-│       ├── serializers.py            # REST serializers
-│       ├── signature_verify.py       # Crypto verification
-│       ├── blockchain.py             # Blockchain integration
-│       ├── aml.py                    # AML checks
-│       ├── tests.py
-│       └── migrations/
-│           └── 0001_initial.py       # Database migrations
-│
-├── blockchain/
-│   ├── contracts/
-│   │   └── Zakat.sol                 # Smart contract
-│   └── scripts/
-│       └── deploy.js                 # Deployment script
-│
-└── frontend/
-    ├── static/
-    │   ├── css/
-    │   └── js/
-    └── templates/
-        ├── base.html
-        ├── index.html
-        ├── success.html
-        ├── auth/
-        │   ├── user_login.html
-        │   ├── user_signup.html
-        │   ├── charity_login.html
-        │   └── charity_signup.html
-        ├── donor/
-        │   ├── dashboard.html
-        │   ├── donate.html
-        │   └── wallet.html
-        └── charity/
-            └── dashboard.html
+
+**Table Schema** (frontend/templates/donation_history.html):
+```html
+<table class="table">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Donor</th>
+      <th>Charity</th>
+      <th>Amount</th>
+      <th>Used Amount</th>  <!-- NEW: tracks unlocked_balance -->
+      <th>Donor Wallet</th>  <!-- Full address -->
+      <th>Charity Wallet</th> <!-- Full address -->
+      <th>Reason</th>
+      <th>Flagged</th>
+      <th>Date</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for donation in donations %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td>{{ donation.donor.username }}</td>
+      <td>{{ donation.charity.name }}</td>
+      <td class="fw-bold text-success">{{ donation.amount|floatformat:4 }} ETH</td>
+      <td class="fw-bold text-primary">{{ donation.unlocked_balance|floatformat:4 }} ETH</td>
+      <td><code>{{ donation.wallet_address }}</code></td>
+      <td><code>{{ donation.charity.wallet_address }}</code></td>
+      <td>{{ donation.reason|default:'-'|truncatechars:40 }}</td>
+      <td>
+        {% if donation.flagged %}
+          <span class="badge bg-danger">Flagged</span>
+        {% else %}
+          <span class="badge bg-success">Clean</span>
+        {% endif %}
+      </td>
+      <td>{{ donation.created_at|date:'M d, Y' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
 ```
+
+**Filter Buttons**:
+- Top 3 Donations (primary button - blue)
+- ETH ≥ 50 (success button - green)
+- ETH ≥ 100 (warning button - orange)
+- All Donations (secondary button - gray)
+
+### 18.5.2 Homepage Top Donations Display
+
+**Location**: Index page (/) - Hero section
+
+**Features**:
+- ✅ Animated card display (pulse glow effect)
+- ✅ Shows top 3 largest verified donations
+- ✅ Rank badges (Top 1, Top 2, Top 3)
+- ✅ Direct link to full history
+- ✅ Summary statistics cards
+
+**CSS Animations** (frontend/templates/base.html):
+```css
+.donation-card {
+    border-radius: 18px;
+    padding: 28px;
+    background: rgba(255,255,255,0.92);
+    box-shadow: 0 18px 30px rgba(0,0,0,0.08);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.donation-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 22px 40px rgba(0,0,0,0.12);
+}
+
+.pulse-highlight {
+    animation: pulseGlow 3s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 0 rgba(46, 204, 113, 0.15); }
+    50% { box-shadow: 0 0 25px rgba(46, 204, 113, 0.25); }
+}
+```
+
+**Display Template** (frontend/templates/index.html):
+```html
+<div class="card p-4 mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold">Top Donations</h2>
+            <p class="text-muted">See the largest verified donations...</p>
+        </div>
+        <a href="{% url 'donation_history' %}" class="btn btn-outline-light btn-lg">
+            View Full History
+        </a>
+    </div>
+
+    <div class="row g-4">
+        {% for donation in top_three_donations %}
+        <div class="col-md-4">
+            <div class="donation-card pulse-highlight">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <span class="badge bg-success">Top {{ forloop.counter }}</span>
+                    <small class="text-muted">{{ donation.created_at|date:"M d, Y" }}</small>
+                </div>
+                <h4 class="fw-bold mb-2">{{ donation.charity.name }}</h4>
+                <p class="text-muted mb-3">Donor: {{ donation.donor.username }}</p>
+                <div class="d-flex align-items-baseline gap-2 mb-3">
+                    <span class="donation-amount">{{ donation.amount|floatformat:4 }} ETH</span>
+                </div>
+                <p class="mb-2"><strong>Wallet:</strong> {{ donation.wallet_address|truncatechars:20 }}</p>
+                <p class="mb-0 text-truncate"><strong>Reason:</strong> {{ donation.reason|default:'No reason provided' }}</p>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-light text-center">No donation history available yet.</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+```
+
+### 18.5.3 Locked vs. Unlocked Balance Tracking
+
+**Database Schema Update**:
+```python
+# Migration 0002_donation_locked_balance_donation_unlocked_balance
+class Donation(models.Model):
+    # ... existing fields ...
+    locked_balance = models.FloatField(default=0, 
+        help_text="Amount still locked, not unlocked to charity")
+    unlocked_balance = models.FloatField(default=0, 
+        help_text="Amount unlocked to charity")
+    
+    def save(self, *args, **kwargs):
+        # Initialize locked balance to full amount on creation
+        if not self.pk and self.amount:
+            self.locked_balance = self.amount
+        super().save(*args, **kwargs)
+    
+    def unlock_amount(self, amount):
+        """Unlock a portion of the donation"""
+        if amount <= self.locked_balance:
+            self.locked_balance -= amount
+            self.unlocked_balance += amount
+            self.save()
+            return True
+        return False
+```
+
+**Fund Unlock Request Auto-Processing**:
+```python
+# backend/zakat_app/models.py - FundUnlockRequest model
+class FundUnlockRequest(models.Model):
+    # ... fields ...
+    
+    def save(self, *args, **kwargs):
+        # When status changes to approved, unlock the balance
+        if self.pk:
+            old_instance = FundUnlockRequest.objects.get(pk=self.pk)
+            if old_instance.status != 'approved' and self.status == 'approved':
+                # Unlock the amount from the donation
+                self.donation.unlock_amount(self.amount)
+        super().save(*args, **kwargs)
+```
+
+### 18.5.4 Charity Fund Request Validation
+
+**Strict Locked Balance Enforcement**:
+```python
+# backend/zakat_app/auth_views.py - request_fund_unlock view
+@login_required(login_url='charity_login')
+def request_fund_unlock(request):
+    user = request.user
+    if not hasattr(user, 'charity_admin'):
+        return redirect('charity_login')
+
+    charity = user.charity_admin
+    # Only show donations with remaining locked balance > 0
+    donations = Donation.objects.filter(
+        charity=charity, 
+        verified=True, 
+        locked_balance__gt=0  # NEW: prevents requesting from fully used donations
+    )
+
+    if request.method == "POST":
+        donation_id = request.POST.get('donation')
+        amount = float(request.POST.get('amount'))
+        reason = request.POST.get('reason')
+
+        try:
+            donation = Donation.objects.get(id=donation_id, charity=charity)
+        except Donation.DoesNotExist:
+            return render(request, "charity/request_fund.html", {
+                "donations": donations,
+                "error": "Invalid donation selected"
+            })
+
+        # Strict validation against locked_balance, not total amount
+        if amount <= 0:
+            return render(request, "charity/request_fund.html", {
+                "donations": donations,
+                "error": "Request amount must be a positive number."
+            })
+
+        if amount > donation.locked_balance:  # KEY CHANGE
+            return render(request, "charity/request_fund.html", {
+                "donations": donations,
+                "error": f"Request amount cannot exceed remaining locked balance ({donation.locked_balance} ETH)."
+            })
+
+        FundUnlockRequest.objects.create(
+            charity=charity,
+            donor=donation.donor,
+            donation=donation,
+            amount=amount,
+            reason=reason
+        )
+
+        return render(request, "success.html", {
+            "message": f"Fund unlock request sent to {donation.donor.username}"
+        })
+
+    return render(request, "charity/request_fund.html", {"donations": donations})
+```
+
+**Enhanced Dropdown Display**:
+```html
+<!-- frontend/templates/charity/request_fund.html -->
+<select name="donation" required style="width: 100%; padding: 8px; margin: 5px 0;">
+    <option value="">Choose a donation...</option>
+    {% for donation in donations %}
+    <option value="{{ donation.id }}">
+        {{ donation.donor.username }} - {{ donation.amount }} ETH total • {{ donation.locked_balance|floatformat:4 }} ETH locked remaining ({{ donation.created_at|date:"M d, Y" }})
+    </option>
+    {% endfor %}
+</select>
+
+<input type="number" name="amount" step="0.001" min="0.001" required 
+       placeholder="Must be ≤ remaining locked amount">
+```
+
+### 18.5.5 Wallet Verification Flow Improvements
+
+**Wallet.html Enhancements**:
+```python
+# Proper CSRF token handling for JSON requests
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+}
+
+const csrfToken = getCookie('csrftoken');
+
+# MetaMask permission request before account selection
+async function connectMetaMask() {
+    try {
+        try {
+            await window.ethereum.request({
+                method: 'wallet_requestPermissions',
+                params: [{ eth_accounts: {} }]
+            });
+        } catch (permError) {
+            console.log('wallet_requestPermissions:', permError.message);
+        }
+
+        const accounts = await window.ethereum.request({
+            method: 'eth_requestAccounts'
+        });
+        # ... rest of account handling
+    }
+}
+```
+
+**Donation Page Inline Verification**:
+```javascript
+// frontend/templates/donor/donate.html
+async function connectAndVerifyWallet() {
+    if (!window.ethereum) {
+        alert('MetaMask is not installed!');
+        return;
+    }
+
+    try {
+        # Request permissions first
+        await window.ethereum.request({
+            method: 'wallet_requestPermissions',
+            params: [{ eth_accounts: {} }]
+        }).catch(() => {});
+
+        const accounts = await window.ethereum.request({
+            method: 'eth_requestAccounts'
+        });
+
+        const account = accounts[0];
+        const message = `Verify my MetaMask wallet for {{ user.username }}: ${account}`;
+        const signature = await web3.eth.personal.sign(message, account, '');
+
+        const response = await fetch('{% url "update_wallet" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                wallet_address: account,
+                signature: signature,
+                message: message
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            walletVerified = true;
+            alert('✓ Wallet verified successfully! Reloading page now.');
+            window.location.reload();  # Auto-reload to reflect verified status
+        }
+    } catch (error) {
+        alert('Wallet verification failed: ' + error.message);
+    }
+}
+```
+
+### 18.5.6 Navigation Updates
+
+**Added to base navbar** (frontend/templates/base.html):
+```html
+<ul class="navbar-nav me-auto">
+    <li class="nav-item">
+        <a class="nav-link" href="/">🏠 Home</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'donation_history' %}">📜 History</a>  <!-- NEW -->
+    </li>
+    <!-- Other nav items... -->
+</ul>
+```
+
+### 18.5.7 Route Addition
+
+**New URL pattern** (backend/zakat_app/urls.py):
+```python
+urlpatterns = [
+    # ... existing patterns ...
+    path('history/', auth_views.donation_history, name='donation_history'),  # NEW
+    # ... rest of patterns ...
+]
+```
+
+### 18.5.8 Test Scenarios Validated
+
+| Scenario | Status | Notes |
+|----------|--------|-------|
+| View public donation history | ✅ Pass | No login required |
+| Filter donations ETH ≥ 50 | ✅ Pass | Works correctly |
+| Filter donations ETH ≥ 100 | ✅ Pass | Highest risk category |
+| Top 3 donations on home | ✅ Pass | Animated, displays correctly |
+| Charity requests with locked balance | ✅ Pass | Cannot exceed locked amount |
+| Wallet verification on donation page | ✅ Pass | Inline verification works |
+| Used amount display in history | ✅ Pass | Shows unlocked_balance |
+| Both wallet addresses visible | ✅ Pass | Full addresses, not truncated |
+| Migration 0002 applied | ✅ Pass | Database schema updated |
+
+### 18.5.9 Files Modified in Phase 3
+
+1. **Backend Views**
+   - `backend/zakat_app/auth_views.py` - Added `donation_history()` view
+
+2. **Database**
+   - `backend/zakat_app/migrations/0002_donation_locked_balance_donation_unlocked_balance.py` - New migration
+
+3. **Frontend Templates**
+   - `frontend/templates/donation_history.html` - New page (created)
+   - `frontend/templates/index.html` - Added top donations section
+   - `frontend/templates/base.html` - Added navbar link, added CSS animations
+   - `frontend/templates/donor/donate.html` - Added inline verification
+   - `frontend/templates/donor/wallet.html` - Improved CSRF handling
+   - `frontend/templates/charity/request_fund.html` - Enhanced validation display
+
+4. **URL Routing**
+   - `backend/zakat_app/urls.py` - Added history route
+
+### 18.5.10 Transparency Metrics
+
+**Public Accountability Achieved**:
+- 100% of verified donations visible publicly
+- Full wallet addresses for donor/charity traceability
+- Amount usage tracking (locked vs. unlocked)
+- AML status visible to all users
+- Donation reasons recorded for public review
+- Timestamps for chronological auditing
+
+**Data Points Tracked**:
+- Donation ID
+- Donor name + full wallet
+- Charity name + full wallet
+- Donated amount (ETH)
+- Used amount (unlocked ETH)
+- Donation reason
+- AML flag status
+- Donation timestamp
+- Total verified donations in system
 
 ---
-
-## 19. CONCLUSION
 
 This **Blockchain-Based Transparent Zakat Distribution System** successfully combines:
 - **Modern Web Development** (Django, JavaScript, MetaMask)

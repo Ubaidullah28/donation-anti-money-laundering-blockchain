@@ -17,13 +17,13 @@
             <option value="">Choose a donation...</option>
             {% for donation in donations %}
             <option value="{{ donation.id }}">
-                {{ donation.donor.username }} - {{ donation.amount }} ETH ({{ donation.created_at|date:"M d, Y" }})
+                {{ donation.donor.username }} - {{ donation.amount }} ETH total • {{ donation.locked_balance|floatformat:4 }} ETH locked remaining ({{ donation.created_at|date:"M d, Y" }})
             </option>
             {% endfor %}
         </select><br><br>
 
         <label>Amount to Request (ETH):</label><br>
-        <input type="number" name="amount" step="0.001" required placeholder="Must be ≤ donation amount"><br><br>
+        <input type="number" name="amount" step="0.001" min="0.001" required placeholder="Must be ≤ remaining locked amount"><br><br>
 
         <label>Reason for Fund Request:</label><br>
         <textarea name="reason" rows="5" required style="width: 100%; padding: 8px;" 

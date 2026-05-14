@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Error - Admin Panel</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }
+        header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        header h1 { font-size: 24px; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .error-card { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
+        .error-card h2 { color: #ff6b6b; margin-bottom: 15px; font-size: 28px; }
+        .error-card p { color: #666; margin-bottom: 20px; }
+        .back-link { display: inline-block; background: #667eea; color: white; padding: 10px 25px; border-radius: 5px; text-decoration: none; font-weight: 600; }
+        .back-link:hover { background: #5568d3; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>⚠️ Error</h1>
+    </header>
+
+    <div class="container">
+        <div class="error-card">
+            <h2>❌ {{ message }}</h2>
+            <p>Something went wrong. Please try again or go back to the dashboard.</p>
+            <a href="/admin/dashboard/" class="back-link">← Back to Dashboard</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Register New Admin - Admin Panel</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }
+        header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        header h1 { font-size: 24px; }
+        .back-btn { background: #ff9100; padding: 10px 20px; border: none; border-radius: 5px; color: white; cursor: pointer; text-decoration: none; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .form-card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .form-card h2 { color: #667eea; margin-bottom: 25px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; color: #555; font-weight: 600; margin-bottom: 8px; }
+        .form-group input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; }
+        .form-group input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 5px rgba(102, 126, 234, 0.3); }
+        .btn-submit { width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 5px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 20px; }
+        .btn-submit:hover { background: #5568d3; }
+        .error { background: #fee; color: #c33; padding: 12px; border-radius: 5px; margin-bottom: 20px; }
+        .success { background: #efe; color: #3c3; padding: 12px; border-radius: 5px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>➕ Register New Admin</h1>
+        <a href="/admin/dashboard/" class="back-btn">← Back</a>
+    </header>
+
+    <div class="container">
+        <div class="form-card">
+            <h2>👨‍💻 Create New Admin Account</h2>
+
+            {% if error %}
+            <div class="error">{{ error }}</div>
+            {% endif %}
+
+            {% if success %}
+            <div class="success">✓ {{ success }}</div>
+            {% endif %}
+
+            <form method="POST">
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required placeholder="admin_username">
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" placeholder="admin@example.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required placeholder="••••••••">
+                </div>
+
+                <div class="form-group">
+                    <label for="password_confirm">Confirm Password</label>
+                    <input type="password" id="password_confirm" name="password_confirm" required placeholder="••••••••">
+                </div>
+
+                <button type="submit" class="btn-submit">Register Admin</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
