@@ -1,5 +1,8 @@
+from datetime import timedelta
+
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.utils import timezone
 from cryptography.fernet import Fernet
 import base64
 
@@ -69,6 +72,7 @@ class Donation(models.Model):
     wallet_address = models.CharField(max_length=200, blank=True, null=True)
     stealth_address = models.CharField(max_length=200, blank=True, null=True)  # Unique address for anonymity
     amount = models.FloatField()
+    contract_time_limit_days = models.PositiveIntegerField(default=3, help_text="Days before a charity unlock request auto-approves if the donor does not respond")
     reason = models.TextField(blank=True, help_text="Reason for donation")
     flagged = models.BooleanField(default=False)
     signature = models.TextField(blank=True, null=True)
@@ -111,6 +115,8 @@ class FundUnlockRequest(models.Model):
     amount = models.FloatField()
     reason = models.TextField()
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    response_deadline = models.DateTimeField(null=True, blank=True)
+    auto_approved = models.BooleanField(default=False, help_text="Automatically approved after deadline if donor did not respond")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -122,6 +128,21 @@ class FundUnlockRequest(models.Model):
                 # Unlock the amount from the donation
                 self.donation.unlock_amount(self.amount)
         super().save(*args, **kwargs)
+
+    @classmethod
+    def auto_approve_expired_requests(cls):
+        now = timezone.now()
+        expired_requests = cls.objects.filter(status='pending', response_deadline__lte=now)
+        for req in expired_requests:
+            req.auto_approve_if_expired()
+
+    def auto_approve_if_expired(self):
+        if self.status == 'pending' and self.response_deadline and timezone.now() >= self.response_deadline:
+            self.status = 'approved'
+            self.auto_approved = True
+            self.save()
+            return True
+        return False
 
     def __str__(self):
         return f"{self.charity.name} requesting {self.amount} ETH from {self.donor.username}"

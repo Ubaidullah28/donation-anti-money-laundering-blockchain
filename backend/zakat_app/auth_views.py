@@ -3,6 +3,9 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
+from datetime import timedelta
+
+from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 from .models import UserAccount, Charity, Donation, FundUnlockRequest, CharityExpense
 from .signature_verify import verify_signature
@@ -215,6 +218,7 @@ def charity_logout(request):
 
 @login_required(login_url='user_login')
 def donor_dashboard(request):
+    FundUnlockRequest.auto_approve_expired_requests()
     user = request.user
     donations = Donation.objects.filter(donor=user).select_related('charity')
     fund_requests = FundUnlockRequest.objects.filter(donor=user).select_related('charity')
@@ -288,6 +292,14 @@ def donate(request):
                 "error": "MetaMask signature verification failed. Ensure it's your verified wallet."
             })
 
+        contract_time_limit_days = request.POST.get('contract_days', '3')
+        try:
+            contract_time_limit_days = int(contract_time_limit_days)
+            if contract_time_limit_days < 1:
+                contract_time_limit_days = 3
+        except ValueError:
+            contract_time_limit_days = 3
+
         recent = Donation.objects.filter(charity=charity, donor=donor).values_list('donor', flat=True)
         flagged = check_aml(donor.username, amount, list(recent))
 
@@ -297,16 +309,18 @@ def donate(request):
         ).hexdigest()
         stealth_address = "0x" + stealth_hash[:40]
 
+        contract_message = f" Fund request response deadline: {contract_time_limit_days} days."
         donation = Donation.objects.create(
             donor=donor,
             charity=charity,
             wallet_address=wallet_address,
             stealth_address=stealth_address,
             amount=amount,
+            contract_time_limit_days=contract_time_limit_days,
             reason=reason,
             flagged=flagged,
             signature=signature,
-            message=message,
+            message=message + contract_message,
             verified=verified
         )
 
@@ -325,6 +339,7 @@ def donate(request):
 @login_required(login_url='user_login')
 def handle_fund_request(request, request_id):
     """Approve or reject fund unlock request"""
+    FundUnlockRequest.auto_approve_expired_requests()
     try:
         fund_request = FundUnlockRequest.objects.get(id=request_id, donor=request.user)
     except FundUnlockRequest.DoesNotExist:
@@ -349,6 +364,7 @@ def charity_dashboard(request):
     if not hasattr(user, 'charity_admin'):
         return redirect('charity_login')
 
+    FundUnlockRequest.auto_approve_expired_requests()
     charity = user.charity_admin
     donations = Donation.objects.filter(charity=charity).select_related('donor')
     fund_requests = FundUnlockRequest.objects.filter(charity=charity).select_related('donor')
@@ -398,12 +414,14 @@ def request_fund_unlock(request):
                 "error": f"Request amount cannot exceed remaining locked balance ({donation.locked_balance} ETH)."
             })
 
+        response_deadline = timezone.now() + timedelta(days=donation.contract_time_limit_days)
         FundUnlockRequest.objects.create(
             charity=charity,
             donor=donation.donor,
             donation=donation,
             amount=amount,
-            reason=reason
+            reason=reason,
+            response_deadline=response_deadline
         )
 
         return render(request, "success.html", {

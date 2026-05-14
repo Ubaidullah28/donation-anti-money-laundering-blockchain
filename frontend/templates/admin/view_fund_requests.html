@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="fw-bold">Fund Unlock Requests</h1>
+            <p class="text-muted">Monitor charity unlock requests and see automatic approvals when donors do not respond in time.</p>
+        </div>
+        <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Admin Dashboard
+        </a>
+    </div>
+
+    {% if fund_requests %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Charity</th>
+                        <th>Donor</th>
+                        <th>Amount</th>
+                        <th>Deadline</th>
+                        <th>Status</th>
+                        <th>Auto Approved</th>
+                        <th>Requested</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in fund_requests %}
+                    <tr>
+                        <td>{{ req.charity.name }}</td>
+                        <td>{{ req.donor.username }}</td>
+                        <td class="text-primary fw-bold">{{ req.amount|floatformat:4 }} ETH</td>
+                        <td>
+                            {% if req.response_deadline %}
+                                {{ req.response_deadline|date:"M d, Y H:i" }}
+                            {% else %}
+                                <span class="text-muted">Not set</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if req.status == 'approved' %}
+                                <span class="badge bg-success">Approved</span>
+                            {% elif req.status == 'rejected' %}
+                                <span class="badge bg-danger">Rejected</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if req.auto_approved %}
+                                <span class="badge bg-info text-dark">Yes</span>
+                            {% else %}
+                                <span class="badge bg-secondary">No</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ req.created_at|date:"M d, Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-envelope-open text-muted" style="font-size: 4rem;"></i>
+            <h4 class="text-muted mt-3">No fund unlock requests yet.</h4>
+            <p class="text-muted">When charities request unlocked donations, they will appear here.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

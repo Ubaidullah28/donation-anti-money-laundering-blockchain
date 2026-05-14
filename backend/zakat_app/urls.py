@@ -36,6 +36,7 @@ urlpatterns = [
     path('admin/donor/<int:donor_id>/', admin_views.view_donor_details, name='admin_donor_details'),
     path('admin/donations/', admin_views.view_donations, name='admin_view_donations'),
     path('admin/charities/', admin_views.view_charities, name='admin_view_charities'),
+    path('admin/fund-requests/', admin_views.view_fund_requests, name='admin_view_fund_requests'),
     path('admin/charity-expenses/', admin_views.view_charity_expenses, name='view_charity_expenses'),
     path('admin/approve-expense/<int:expense_id>/', admin_views.approve_expense, name='approve_expense'),
     path('admin/flag/<int:donation_id>/', admin_views.flag_donation, name='admin_flag_donation'),

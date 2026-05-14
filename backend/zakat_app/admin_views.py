@@ -160,6 +160,21 @@ def view_charities(request):
 
 @login_required(login_url='admin_login')
 @never_cache
+def view_fund_requests(request):
+    """View all charity fund unlock requests"""
+    if not Admin.objects.filter(user=request.user).exists():
+        return redirect('admin_login')
+
+    FundUnlockRequest.auto_approve_expired_requests()
+    fund_requests = FundUnlockRequest.objects.select_related('charity', 'donor', 'donation').order_by('-created_at')
+
+    return render(request, "admin/view_fund_requests.html", {
+        'fund_requests': fund_requests,
+    })
+
+
+@login_required(login_url='admin_login')
+@never_cache
 def view_charity_expenses(request):
     """View all charity expenses"""
     if not Admin.objects.filter(user=request.user).exists():
